@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lucky Slots 777</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: white;
+            transition: background-color 1s ease;
+        }
+        body.winner {
+            background-color: gold;
+        }
+        .slot-machine {
+            background-color: #2b2b2b;
+            padding: 30px; /* Powiększone z 20px */
+            border-radius: 15px; /* Powiększone z 10px */
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5); /* Powiększony cień */
+            text-align: center;
+            position: relative;
+        }
+        .logo {
+            position: absolute;
+            top: 15px; /* Powiększone z 10px */
+            left: 15px; /* Powiększone z 10px */
+            width: 75px; /* Powiększone z 50px */
+            height: auto;
+            cursor: pointer;
+        }
+        .reels {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0; /* Powiększone z 20px */
+        }
+        .reel {
+            width: 150px; /* Powiększone z 100px */
+            height: 150px; /* Powiększone z 100px */
+            background-color: #fff;
+            margin: 0 15px; /* Powiększone z 10px */
+            font-size: 60px; /* Powiększone z 40px */
+            line-height: 150px; /* Dopasowane do nowej wysokości */
+            color: #000;
+            border: 5px solid gold; /* Powiększone z 3px */
+            border-radius: 15px; /* Powiększone z 10px */
+            overflow: hidden;
+            position: relative;
+        }
+        .reel.spinning {
+            animation: spinAnimation 0.1s infinite linear;
+        }
+        @keyframes spinAnimation {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-150px); } /* Dopasowane do nowej wysokości */
+        }
+        button {
+            background-color: #ff4500;
+            color: white;
+            border: none;
+            padding: 20px 40px; /* Powiększone z 15px 30px */
+            font-size: 24px; /* Powiększone z 18px */
+            border-radius: 8px; /* Powiększone z 5px */
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin: 8px; /* Powiększone z 5px */
+        }
+        button:hover {
+            background-color: #ff6347;
+        }
+        button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+        h1 {
+            color: gold;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5); /* Powiększony cień */
+            font-size: 48px; /* Powiększone z domyślnego */
+        }
+        #balance, #loyaltyPoints {
+            font-size: 28px; /* Powiększone z 20px */
+            margin: 15px 0; /* Powiększone z 10px */
+        }
+        .deposit {
+            margin: 20px 0; /* Powiększone z 15px */
+        }
+        #depositAmount, #blikCode {
+            padding: 8px; /* Powiększone z 5px */
+            font-size: 20px; /* Powiększone z 16px */
+            border-radius: 8px; /* Powiększone z 5px */
+            border: 2px solid gold; /* Powiększone z 1px */
+        }
+        #depositButton, #confirmBlikButton {
+            padding: 8px 20px; /* Powiększone z 5px 15px */
+            margin-left: 15px; /* Powiększone z 10px */
+            font-size: 18px; /* Powiększone z 14px */
+        }
+        #blikSection {
+            display: none;
+            margin-top: 15px; /* Powiększone z 10px */
+        }
+        #result {
+            font-size: 24px; /* Powiększone z domyślnego */
+        }
+    </style>
+</head>
+<body>
+    <div class="slot-machine">
+        <a href="GLOWNA.html"><img src="logo.png" alt="Logo" class="logo"></a>
+        <h1>Lucky Slots 777</h1>
+        <p id="balance">Stan konta: 100 PLN</p>
+        <p id="loyaltyPoints">Punkty lojalnościowe: 0</p>
+        <div class="reels">
+            <div class="reel" id="reel1">7</div>
+            <div class="reel" id="reel2">7</div>
+            <div class="reel" id="reel3">7</div>
+        </div>
+        <button id="spinButton" onclick="spin()">Zakręć! (5 PLN)</button>
+        <button id="autoSpinButton" onclick="toggleAutoSpin()">Autospin</button>
+        <button id="redeemLoyalty" onclick="redeemLoyaltyPoints()">Wymień punkty (10 pkt = 50 PLN)</button>
+        <p id="result">Powodzenia!</p>
+        <div class="deposit">
+            <select id="depositAmount">
+                <option value="20">20 PLN</option>
+                <option value="50">50 PLN</option>
+                <option value="100">100 PLN</option>
+                <option value="200">200 PLN</option>
+            </select>
+            <button id="depositButton" onclick="showBlikConfirmation()">Wpłać</button>
+        </div>
+        <div id="blikSection">
+            <input type="text" id="blikCode" placeholder="Wprowadź 6-cyfrowy kod BLIK" maxlength="6">
+            <button id="confirmBlikButton" onclick="confirmBlik()">Potwierdź</button>
+        </div>
+    </div>
+
+    <!-- Dźwięki -->
+    <audio id="spinSound" src="spin-sound.mp3"></audio>
+    <audio id="winSound" src="win-sound.mp3"></audio>
+    <audio id="loseSound" src="lose-sound.mp3"></audio>
+
+    <!-- Biblioteka canvas-confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script>
+        let balance = 100; // Początkowy stan konta
+        let loyaltyPoints = 0; // Początkowe punkty lojalnościowe
+        const spinCost = 5; // Koszt jednego zakręcenia
+        const jackpotPrize = 20000; // Nagroda za jackpot
+        const loyaltyThreshold = 10; // Próg punktów do wymiany
+        const loyaltyReward = 50; // Nagroda za wymianę punktów
+        let autoSpinInterval = null; // Zmienna do przechowywania interwału autospin
+        let pendingDeposit = 0; // Zmienna do przechowywania wybranej kwoty wpłaty
+        let isSpinning = false; // Flaga zapobiegająca wielokrotnemu kręceniu
+        let gameStopped = false; // Flaga zatrzymania gry po wygranej
+
+        // Dźwięki
+        const spinSound = document.getElementById('spinSound');
+        const winSound = document.getElementById('winSound');
+        const loseSound = document.getElementById('loseSound');
+
+        function updateBalance() {
+            document.getElementById('balance').textContent = `Stan konta: ${balance} PLN`;
+            document.getElementById('loyaltyPoints').textContent = `Punkty lojalnościowe: ${loyaltyPoints}`;
+            const spinButton = document.getElementById('spinButton');
+            const autoSpinButton = document.getElementById('autoSpinButton');
+            if (balance < spinCost || gameStopped) {
+                spinButton.disabled = true;
+                autoSpinButton.disabled = true;
+                stopAutoSpin();
+                if (balance < spinCost) {
+                    document.getElementById('result').textContent = "Brak środków na grę!";
+                }
+            } else {
+                spinButton.disabled = false;
+                autoSpinButton.disabled = false;
+            }
+        }
+
+        function spin() {
+            if (balance < spinCost || isSpinning || gameStopped) {
+                return; // Nie kręć, jeśli brak środków, już się kręci lub gra jest zatrzymana
+            }
+
+            isSpinning = true;
+            balance -= spinCost;
+            loyaltyPoints += 1;
+            updateBalance();
+
+            const symbols = [
+                '7', '🍒', '🍋', '🍊', '💎', '⭐', 
+                '🍇', '🍉', '🍓', '🍍', '🍎', '🍑', 
+                '🔔', '💰', '🎰', '🎲', '♠️', '♥️', '♣️', '♦️'
+            ];
+            const reel1 = document.getElementById('reel1');
+            const reel2 = document.getElementById('reel2');
+            const reel3 = document.getElementById('reel3');
+            const result = document.getElementById('result');
+
+            // Odtwórz dźwięk kręcenia
+            spinSound.currentTime = 0;
+            spinSound.play();
+
+            // Dodaj klasę animacji do wszystkich bębnów
+            reel1.classList.add('spinning');
+            reel2.classList.add('spinning');
+            reel3.classList.add('spinning');
+
+            // Symulacja losowania w trakcie animacji
+            let spinInterval = setInterval(() => {
+                reel1.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+                reel2.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+                reel3.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+            }, 100);
+
+            // Zatrzymaj bębny po kolei
+            setTimeout(() => {
+                reel1.classList.remove('spinning');
+                reel1.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+            }, 2000); // Pierwszy bęben po 2 sekundach
+
+            setTimeout(() => {
+                reel2.classList.remove('spinning');
+                reel2.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+            }, 2500); // Drugi bęben po 2,5 sekundy
+
+            setTimeout(() => {
+                clearInterval(spinInterval); // Zatrzymaj losowanie
+                reel3.classList.remove('spinning');
+                reel3.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+                spinSound.pause(); // Zatrzymaj dźwięk kręcenia
+
+                // Sprawdzenie wygranej
+                if (reel1.textContent === reel2.textContent && reel2.textContent === reel3.textContent) {
+                    balance += jackpotPrize;
+                    result.textContent = `JACKPOT! Wygrano ${jackpotPrize} PLN! Nowy stan konta: ${balance} PLN`;
+                    result.style.color = "gold";
+                    gameStopped = true; // Zatrzymaj grę
+                    triggerWinEffects();
+                    winSound.currentTime = 0;
+                    winSound.play();
+                } else {
+                    result.textContent = "Spróbuj jeszcze raz!";
+                    result.style.color = "white";
+                    loseSound.currentTime = 0;
+                    loseSound.play(); // Odtwórz dźwięk przegranej
+                }
+                updateBalance();
+                isSpinning = false;
+            }, 3000); // Trzeci bęben po 3 sekundach
+        }
+
+        function triggerWinEffects() {
+            // Złote tło strony
+            document.body.classList.add('winner');
+
+            // Efekt konfetti
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+        }
+
+        function toggleAutoSpin() {
+            const autoSpinButton = document.getElementById('autoSpinButton');
+            if (autoSpinInterval) {
+                stopAutoSpin();
+                autoSpinButton.textContent = "Autospin";
+            } else {
+                if (balance >= spinCost && !gameStopped) {
+                    startAutoSpin();
+                    autoSpinButton.textContent = "Zatrzymaj Autospin";
+                } else if (gameStopped) {
+                    document.getElementById('result').textContent = "Gra zatrzymana po wygranej!";
+                    document.getElementById('result').style.color = "gold";
+                } else {
+                    document.getElementById('result').textContent = "Brak środków na autospin!";
+                    document.getElementById('result').style.color = "red";
+                }
+            }
+        }
+
+        function startAutoSpin() {
+            autoSpinInterval = setInterval(() => {
+                if (balance >= spinCost && !isSpinning && !gameStopped) {
+                    spin();
+                } else {
+                    stopAutoSpin();
+                }
+            }, 3500); // Odstęp 3,5 sekundy
+        }
+
+        function stopAutoSpin() {
+            if (autoSpinInterval) {
+                clearInterval(autoSpinInterval);
+                autoSpinInterval = null;
+                document.getElementById('autoSpinButton').textContent = "Autospin";
+            }
+        }
+
+        function redeemLoyaltyPoints() {
+            const result = document.getElementById('result');
+            if (loyaltyPoints >= loyaltyThreshold) {
+                loyaltyPoints -= loyaltyThreshold;
+                balance += loyaltyReward;
+                updateBalance();
+                result.textContent = `Wymieniono ${loyaltyThreshold} punktów na ${loyaltyReward} PLN! Nowy stan konta: ${balance} PLN`;
+                result.style.color = "gold";
+            } else {
+                result.textContent = `Za mało punktów! Potrzebujesz ${loyaltyThreshold} punktów, masz: ${loyaltyPoints}`;
+                result.style.color = "red";
+            }
+        }
+
+        function showBlikConfirmation() {
+            const depositAmount = parseInt(document.getElementById('depositAmount').value);
+            pendingDeposit = depositAmount;
+            document.getElementById('blikSection').style.display = 'block';
+            document.getElementById('result').textContent = `Wpłata ${depositAmount} PLN: Wprowadź kod BLIK`;
+            document.getElementById('result').style.color = "white";
+            document.getElementById('blikCode').value = "";
+        }
+
+        function confirmBlik() {
+            const blikCode = document.getElementById('blikCode').value;
+            const result = document.getElementById('result');
+
+            if (/^\d{6}$/.test(blikCode)) {
+                balance += pendingDeposit;
+                updateBalance();
+                result.textContent = `Wpłacono ${pendingDeposit} PLN! Nowy stan konta: ${balance} PLN`;
+                result.style.color = "gold";
+                document.getElementById('blikSection').style.display = 'none';
+            } else {
+                result.textContent = "Nieprawidłowy kod BLIK! Wprowadź 6 cyfr.";
+                result.style.color = "red";
+            }
+        }
+
+        // Inicjalizacja stanu konta i punktów
+        updateBalance();
+    </script>
+</body>
+</html>

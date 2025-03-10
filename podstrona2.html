@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Blackjack - Kasyno xAI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #2e7d32;
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+        .game-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .logo {
+            max-width: 200px;
+            margin-bottom: 20px;
+            cursor: pointer; /* Dodaje wskaźnik, że logo jest klikalne */
+        }
+        .cards {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .card {
+            width: 80px;
+            height: 120px;
+            background: white;
+            color: black;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #1976d2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #1565c0;
+        }
+        button:disabled {
+            background-color: #666;
+            cursor: not-allowed;
+        }
+        input {
+            padding: 8px;
+            margin: 5px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <a href="GLOWNA.html"><img src="logo.png" alt="Logo Kasyna" class="logo"></a>
+        <h1>Blackjack - Kasyno xAI</h1>
+        
+        <div>
+            <h3>Portfel: <span id="balance">0</span> PLN</h3>
+            <input id="blik-code" type="text" placeholder="Kod BLIK (6 cyfr)">
+            <button id="deposit-btn">Wpłać 50 PLN</button>
+        </div>
+        
+        <div>
+            <h2>Gracz: <span id="player-score">0</span></h2>
+            <div id="player-cards" class="cards"></div>
+        </div>
+        
+        <div>
+            <h2>Krupier: <span id="dealer-score">0</span></h2>
+            <div id="dealer-cards" class="cards"></div>
+        </div>
+        
+        <div id="message"></div>
+        
+        <div>
+            <button id="start-btn">Nowa gra (10 PLN)</button>
+            <button id="hit-btn" disabled>Dobierz</button>
+            <button id="stand-btn" disabled>Pas</button>
+        </div>
+    </div>
+
+    <script>
+        const suits = ['♠', '♥', '♦', '♣'];
+        const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+        
+        let deck = [];
+        let playerCards = [];
+        let dealerCards = [];
+        let balance = 0;
+        
+        const balanceEl = document.getElementById('balance');
+        const playerScoreEl = document.getElementById('player-score');
+        const dealerScoreEl = document.getElementById('dealer-score');
+        const playerCardsEl = document.getElementById('player-cards');
+        const dealerCardsEl = document.getElementById('dealer-cards');
+        const messageEl = document.getElementById('message');
+        const startBtn = document.getElementById('start-btn');
+        const hitBtn = document.getElementById('hit-btn');
+        const standBtn = document.getElementById('stand-btn');
+        const depositBtn = document.getElementById('deposit-btn');
+        const blikCodeEl = document.getElementById('blik-code');
+
+        function createDeck() {
+            deck = [];
+            for (let suit of suits) {
+                for (let value of values) {
+                    if (['J', 'Q', 'K', 'A'].includes(value) && Math.random() < 0.7) continue;
+                    deck.push({suit, value});
+                }
+            }
+            deck = deck.sort(() => Math.random() - 0.5);
+        }
+
+        function getCardValue(card) {
+            if (card.value === 'A') return 11;
+            if (['J', 'Q', 'K'].includes(card.value)) return 10;
+            return parseInt(card.value);
+        }
+
+        function calculateScore(cards) {
+            let score = 0;
+            let aces = 0;
+            
+            cards.forEach(card => {
+                let value = getCardValue(card);
+                if (value === 11) aces++;
+                score += value;
+            });
+            
+            while (score > 21 && aces > 0) {
+                score -= 10;
+                aces--;
+            }
+            
+            return score;
+        }
+
+        function renderCards(element, cards) {
+            element.innerHTML = '';
+            cards.forEach(card => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card';
+                cardEl.textContent = `${card.value}${card.suit}`;
+                if (card.suit === '♥' || card.suit === '♦') {
+                    cardEl.style.color = 'red';
+                }
+                element.appendChild(cardEl);
+            });
+        }
+
+        function deposit() {
+            const blikCode = blikCodeEl.value;
+            if (/^\d{6}$/.test(blikCode)) {
+                balance += 50;
+                balanceEl.textContent = balance;
+                messageEl.textContent = 'Wpłacono 50 PLN!';
+                blikCodeEl.value = '';
+            } else {
+                messageEl.textContent = 'Nieprawidłowy kod BLIK! Wpisz 6 cyfr.';
+            }
+        }
+
+        function startGame() {
+            if (balance < 10) {
+                messageEl.textContent = 'Masz za mało środków! Wpłać 50 PLN kodem BLIK.';
+                return;
+            }
+            
+            balance -= 10;
+            balanceEl.textContent = balance;
+            createDeck();
+            playerCards = [deck.pop(), deck.pop()];
+            dealerCards = [deck.pop(), deck.pop()];
+            
+            while (calculateScore(dealerCards) < 18) {
+                dealerCards.push({suit: '♠', value: '10'});
+                dealerCards.shift();
+            }
+            
+            renderCards(playerCardsEl, playerCards);
+            renderCards(dealerCardsEl, [dealerCards[0]]);
+            
+            playerScoreEl.textContent = calculateScore(playerCards);
+            dealerScoreEl.textContent = getCardValue(dealerCards[0]);
+            
+            messageEl.textContent = 'Twoja kolej!';
+            hitBtn.disabled = false;
+            standBtn.disabled = false;
+            startBtn.disabled = true;
+        }
+
+        function hit() {
+            playerCards.push(deck.pop());
+            renderCards(playerCardsEl, playerCards);
+            const score = calculateScore(playerCards);
+            playerScoreEl.textContent = score;
+            
+            if (score > 21) {
+                endGame('Przegrałeś! Przekroczyłeś 21.');
+            }
+        }
+
+        function stand() {
+            renderCards(dealerCardsEl, dealerCards);
+            let dealerScore = calculateScore(dealerCards);
+            
+            while (dealerScore < 19) {
+                dealerCards.push(deck.pop());
+                renderCards(dealerCardsEl, dealerCards);
+                dealerScore = calculateScore(dealerCards);
+            }
+            
+            dealerScoreEl.textContent = dealerScore;
+            
+            const playerScore = calculateScore(playerCards);
+            if (dealerScore > 21) {
+                endGame('Wygrałeś! Krupier przekroczył 21. +250 PLN!');
+                balance += 250;
+                balanceEl.textContent = balance;
+            } else if (dealerScore > playerScore) {
+                endGame('Przegrałeś! Krupier ma więcej punktów.');
+            } else if (dealerScore < playerScore) {
+                endGame('Wygrałeś! Masz więcej punktów. +250 PLN!');
+                balance += 250;
+                balanceEl.textContent = balance;
+            } else {
+                endGame('Remis! Zwrot 10 PLN.');
+                balance += 10;
+                balanceEl.textContent = balance;
+            }
+        }
+
+        function endGame(message) {
+            messageEl.textContent = message;
+            hitBtn.disabled = true;
+            standBtn.disabled = true;
+            startBtn.disabled = false;
+        }
+
+        startBtn.addEventListener('click', startGame);
+        hitBtn.addEventListener('click', hit);
+        standBtn.addEventListener('click', stand);
+        depositBtn.addEventListener('click', deposit);
+    </script>
+</body>
+</html>
