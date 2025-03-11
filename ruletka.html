@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Ruletka Kasyno</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #1a3c34;
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+        #logo {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 100px;
+        }
+        #roulette-container {
+            position: relative;
+            width: 300px;
+            height: 100px;
+            margin: 20px auto;
+            overflow: hidden;
+            border: 2px solid #fff;
+        }
+        #roulette-wheel {
+            position: absolute;
+            width: 2000px;
+            height: 100%;
+            display: flex;
+            transition: transform 2s ease-out;
+        }
+        .slot {
+            width: 100px;
+            height: 100%;
+            line-height: 100px;
+            font-size: 24px;
+            flex-shrink: 0;
+            border-right: 1px solid #ccc;
+        }
+        .red {
+            background-color: #ff0000;
+        }
+        .black {
+            background-color: #000000;
+        }
+        .green {
+            background-color: #00ff00;
+        }
+        #pointer {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 20px;
+            background-color: yellow;
+            border-radius: 50%;
+            z-index: 10;
+            border: 2px solid #000;
+        }
+        #result {
+            font-size: 28px;
+            margin: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #ffcc00;
+            border: none;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #e6b800;
+        }
+        #bet-section, #deposit-section {
+            margin: 20px;
+        }
+        #balance {
+            font-size: 20px;
+            margin: 10px;
+        }
+        input[type="number"], input[type="text"] {
+            padding: 5px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html"><img id="logo" src="logo.png" alt="Logo"></a>
+    <h1>Ruletka Kasyno</h1>
+    <div id="roulette-container">
+        <div id="roulette-wheel"></div>
+        <div id="pointer"></div>
+    </div>
+    <div id="result"></div>
+    <div id="balance">Saldo: 100 PLN</div>
+    <div id="bet-section">
+        <input type="number" id="bet-number" placeholder="Numer (0-36)" min="0" max="36">
+        <select id="bet-color">
+            <option value="">Wybierz kolor</option>
+            <option value="red">Czerwony</option>
+            <option value="black">Czarny</option>
+        </select>
+        <button onclick="spinWheel()">Zakręć (10 PLN)</button>
+    </div>
+    <div id="deposit-section">
+        <input type="number" id="deposit-amount" placeholder="Kwota wpłaty (PLN)" min="10" step="10">
+        <button onclick="startDeposit()">Wpłać</button>
+        <div id="blik-section" style="display: none;">
+            <p>Wpisz 6-cyfrowy kod BLIK:</p>
+            <input type="text" id="blik-input" placeholder="6 cyfr" maxlength="6">
+            <button onclick="confirmDeposit()">Potwierdź wpłatę</button>
+        </div>
+    </div>
+
+    <script>
+        const wheel = document.getElementById("roulette-wheel");
+        const numbers = [
+            0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23,
+            10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26
+        ];
+        const colors = numbers.map(num => 
+            num === 0 ? "green" : (numbers.indexOf(num) % 2 === 0 ? "red" : "black")
+        );
+
+        let balance = 100;
+        document.getElementById("balance").innerText = `Saldo: ${balance} PLN`;
+
+        // Tworzenie taśmy ruletki
+        function createWheel() {
+            wheel.innerHTML = "";
+            for (let i = 0; i < numbers.length * 2; i++) {
+                const slot = document.createElement("div");
+                const num = numbers[i % numbers.length];
+                slot.className = `slot ${colors[i % colors.length]}`;
+                slot.innerText = num;
+                wheel.appendChild(slot);
+            }
+        }
+        createWheel();
+
+        function spinWheel() {
+            const betNumber = parseInt(document.getElementById("bet-number").value);
+            const betColor = document.getElementById("bet-color").value;
+
+            if ((isNaN(betNumber) || betNumber < 0 || betNumber > 36) && !betColor) {
+                alert("Wybierz poprawny numer (0-36) lub kolor!");
+                return;
+            }
+            if (balance < 10) {
+                alert("Nie masz wystarczająco środków! Saldo: " + balance + " PLN");
+                return;
+            }
+
+            balance -= 10;
+            document.getElementById("balance").innerText = `Saldo: ${balance} PLN`;
+            document.getElementById("result").innerText = "Kręci się...";
+
+            wheel.style.transition = "none";
+            wheel.style.transform = "translateX(0)";
+
+            setTimeout(() => {
+                const randomIndex = Math.floor(Math.random() * numbers.length);
+                const wheelWidth = 2000; // Szerokość taśmy
+                const containerWidth = 300; // Szerokość kontenera
+                const slotWidth = 100; // Szerokość jednego pola
+                const centerOffset = containerWidth / 2 - slotWidth / 2; // Offset do wyśrodkowania pola
+                const basePosition = numbers.length * slotWidth; // Pozycja startowa drugiej pętli liczb
+                const targetPosition = basePosition + randomIndex * slotWidth; // Docelowa pozycja wylosowanego pola
+                const offset = -(targetPosition - centerOffset); // Przesunięcie, aby wylosowane pole było w środku
+
+                wheel.style.transition = "transform 2s ease-out";
+                wheel.style.transform = `translateX(${offset}px)`;
+
+                setTimeout(() => {
+                    const resultNum = numbers[randomIndex];
+                    const resultColor = colors[randomIndex];
+                    let winnings = 0;
+
+                    if (!isNaN(betNumber) && betNumber === resultNum) {
+                        winnings += 40;
+                    }
+                    if (betColor && betColor === resultColor && resultColor !== "green") {
+                        winnings += 20;
+                    }
+
+                    if (winnings > 0) {
+                        balance += winnings;
+                        document.getElementById("result").innerText = `Gratulacje! Wygrałeś ${winnings} PLN! (Wylosowano: ${resultNum}, ${resultColor})`;
+                        document.getElementById("result").style.color = "#00ff00";
+                    } else {
+                        document.getElementById("result").innerText = `Przegrałeś. Wylosowano: ${resultNum}, ${resultColor}`;
+                        document.getElementById("result").style.color = "#ff0000";
+                    }
+                    document.getElementById("balance").innerText = `Saldo: ${balance} PLN`;
+                }, 2000);
+            }, 10);
+        }
+
+        function startDeposit() {
+            const amount = parseInt(document.getElementById("deposit-amount").value);
+            if (isNaN(amount) || amount < 10 || amount % 10 !== 0) {
+                alert("Wpisz poprawną kwotę (min. 10 PLN, wielokrotność 10)!");
+                return;
+            }
+            document.getElementById("blik-section").style.display = "block";
+            document.getElementById("result").innerText = "Wpisz 6-cyfrowy kod BLIK, aby potwierdzić wpłatę.";
+        }
+
+        function confirmDeposit() {
+            const enteredCode = document.getElementById("blik-input").value;
+            const amount = parseInt(document.getElementById("deposit-amount").value);
+
+            if (/^\d{6}$/.test(enteredCode)) {
+                balance += amount;
+                document.getElementById("balance").innerText = `Saldo: ${balance} PLN`;
+                document.getElementById("result").innerText = `Wpłata ${amount} PLN zakończona sukcesem!`;
+                document.getElementById("result").style.color = "#00ff00";
+                document.getElementById("blik-section").style.display = "none";
+                document.getElementById("deposit-amount").value = "";
+                document.getElementById("blik-input").value = "";
+            } else {
+                document.getElementById("result").innerText = "Kod BLIK musi mieć dokładnie 6 cyfr!";
+                document.getElementById("result").style.color = "#ff0000";
+            }
+        }
+    </script>
+</body>
+</html>
